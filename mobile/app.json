@@ -11,7 +11,9 @@
       "resizeMode": "contain",
       "backgroundColor": "#FFF5E4"
     },
-    "assetBundlePatterns": ["**/*"],
+    "assetBundlePatterns": [
+      "**/*"
+    ],
     "ios": {
       "supportsTablet": true,
       "infoPlist": {
@@ -19,7 +21,11 @@
       }
     },
     "android": {
-      "permissions": ["RECORD_AUDIO"],
+      "permissions": [
+        "RECORD_AUDIO",
+        "android.permission.RECORD_AUDIO",
+        "android.permission.MODIFY_AUDIO_SETTINGS"
+      ],
       "package": "com.skripsi.deteksideepfakeaudio",
       "versionCode": 1,
       "adaptiveIcon": {
@@ -46,6 +52,12 @@
           "backgroundColor": "#FFF5E4"
         }
       ]
-    ]
+    ],
+    "extra": {
+      "eas": {
+        "projectId": "3f97a853-4759-48e4-b00d-b2710de51cc9"
+      }
+    },
+    "owner": "claramarsya"
   }
 }

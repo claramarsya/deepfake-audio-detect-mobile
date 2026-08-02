@@ -6,7 +6,7 @@
 //   - Linux   : buka Terminal, ketik "hostname -I"
 // HP dan laptop HARUS terhubung ke WiFi yang SAMA.
 // =============================================================
-export const API_BASE_URL = "http://192.168.1.9:8000";
+export const API_BASE_URL = "https://voicedetect-backend.up.railway.app";
 // export const API_BASE_URL = "http://10.84.139.185:8000";
 
 export const PREDICT_ENDPOINT = `${API_BASE_URL}/predict`;

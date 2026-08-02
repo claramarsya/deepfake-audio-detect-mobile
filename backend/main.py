@@ -13,6 +13,7 @@ akan memanggil http://<IP-LAPTOP>:8000
 
 import os
 import tempfile
+import traceback
 
 import joblib
 import numpy as np
@@ -185,7 +186,14 @@ async def predict_audio(file: UploadFile = File(...)):
     except HTTPException:
         raise
     except Exception as exc:  # noqa: BLE001
-        raise HTTPException(status_code=500, detail=f"Gagal memproses audio: {exc}") from exc
+        print("=" * 60)
+        print("ERROR saat memproses /predict:")
+        traceback.print_exc()
+        print("=" * 60)
+        exc_name = type(exc).__name__
+        exc_msg = str(exc).strip()
+        detail = f"Gagal memproses audio: [{exc_name}] {exc_msg}" if exc_msg else f"Gagal memproses audio: [{exc_name}] (tidak ada pesan detail dari server, cek Railway logs)"
+        raise HTTPException(status_code=500, detail=detail) from exc
     finally:
         if tmp_path and os.path.exists(tmp_path):
             os.unlink(tmp_path)
