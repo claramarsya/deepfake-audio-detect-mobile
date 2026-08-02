@@ -1,0 +1,51 @@
+{
+  "expo": {
+    "name": "VoiceDetect",
+    "slug": "VoiceDetect",
+    "version": "1.0.0",
+    "orientation": "portrait",
+    "icon": "./assets/icon.png",
+    "userInterfaceStyle": "light",
+    "splash": {
+      "image": "./assets/icon.png",
+      "resizeMode": "contain",
+      "backgroundColor": "#FFF5E4"
+    },
+    "assetBundlePatterns": ["**/*"],
+    "ios": {
+      "supportsTablet": true,
+      "infoPlist": {
+        "NSMicrophoneUsageDescription": "Aplikasi memerlukan akses mikrofon untuk merekam suara yang akan dianalisis apakah asli atau hasil AI (deepfake)."
+      }
+    },
+    "android": {
+      "permissions": ["RECORD_AUDIO"],
+      "package": "com.skripsi.deteksideepfakeaudio",
+      "versionCode": 1,
+      "adaptiveIcon": {
+        "foregroundImage": "./assets/icon.png",
+        "backgroundColor": "#850E35"
+      }
+    },
+    "web": {
+      "favicon": "./assets/icon.png"
+    },
+    "plugins": [
+      [
+        "expo-av",
+        {
+          "microphonePermission": "Aplikasi memerlukan akses mikrofon untuk merekam suara yang akan dianalisis."
+        }
+      ],
+      [
+        "expo-splash-screen",
+        {
+          "image": "./assets/icon.png",
+          "imageWidth": 220,
+          "resizeMode": "contain",
+          "backgroundColor": "#FFF5E4"
+        }
+      ]
+    ]
+  }
+}
