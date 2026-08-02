@@ -98,6 +98,44 @@ def load_models():
 # ----------------------------------------------------------------------------
 # AUDIO PROCESSING (identik dengan app.py)
 # ----------------------------------------------------------------------------
+import subprocess
+
+
+def convert_to_wav_via_ffmpeg(src_path: str) -> str:
+    """
+    Convert file audio apapun (m4a/aac/mp3/dll) ke WAV 16kHz mono pakai
+    ffmpeg langsung (subprocess), BUKAN lewat librosa/audioread.
+
+    Ini jauh lebih ringan & stabil dibanding jalur audioread Python yang
+    sempat bikin proses server crash total (OOM/native crash) saat baca
+    file .m4a hasil rekaman, tanpa sempat memunculkan Python exception.
+    """
+    wav_path = src_path + "_converted.wav"
+    try:
+        result = subprocess.run(
+            [
+                "ffmpeg", "-y", "-i", src_path,
+                "-ac", "1", "-ar", str(SAMPLE_RATE),
+                "-vn", wav_path,
+            ],
+            capture_output=True,
+            timeout=30,
+        )
+    except FileNotFoundError as exc:
+        raise RuntimeError(
+            "ffmpeg tidak ditemukan di server. Pastikan nixpacks.toml sudah "
+            "ke-deploy dengan benar (aptPkgs = ['ffmpeg'])."
+        ) from exc
+    except subprocess.TimeoutExpired as exc:
+        raise RuntimeError("Konversi audio memakan waktu terlalu lama (timeout).") from exc
+
+    if result.returncode != 0 or not os.path.exists(wav_path):
+        stderr_tail = result.stderr.decode(errors="ignore")[-800:]
+        raise RuntimeError(f"ffmpeg gagal mengonversi audio: {stderr_tail}")
+
+    return wav_path
+
+
 def load_and_resample(filepath: str) -> np.ndarray:
     y, sr = librosa.load(filepath, sr=SAMPLE_RATE, mono=True)
     if len(y) > TARGET_SAMPLES:
@@ -140,7 +178,15 @@ class PredictResponse(BaseModel):
 @app.get("/health")
 def health():
     ready = bundle.yamnet is not None and bundle.dnn is not None and bundle.scaler is not None
-    return {"status": "ok", "model_ready": ready}
+    ffmpeg_ok = subprocess.run(
+        ["ffmpeg", "-version"], capture_output=True
+    ).returncode == 0 if _ffmpeg_exists() else False
+    return {"status": "ok", "model_ready": ready, "ffmpeg_available": ffmpeg_ok}
+
+
+def _ffmpeg_exists() -> bool:
+    from shutil import which
+    return which("ffmpeg") is not None
 
 
 @app.post("/predict", response_model=PredictResponse)
@@ -161,6 +207,7 @@ async def predict_audio(file: UploadFile = File(...)):
         raise HTTPException(status_code=503, detail="Model belum siap, coba lagi sebentar.")
 
     tmp_path = None
+    wav_path = None
     try:
         content = await file.read()
 
@@ -175,7 +222,11 @@ async def predict_audio(file: UploadFile = File(...)):
             tmp.write(content)
             tmp_path = tmp.name
 
-        label, confidence, prob_fake, duration = predict(tmp_path)
+        # Selalu konversi ke WAV lewat ffmpeg dulu (lebih stabil & ringan
+        # dibanding langsung load m4a/mp3/dll lewat librosa/audioread).
+        wav_path = convert_to_wav_via_ffmpeg(tmp_path)
+
+        label, confidence, prob_fake, duration = predict(wav_path)
 
         return PredictResponse(
             label=label,
@@ -195,5 +246,6 @@ async def predict_audio(file: UploadFile = File(...)):
         detail = f"Gagal memproses audio: [{exc_name}] {exc_msg}" if exc_msg else f"Gagal memproses audio: [{exc_name}] (tidak ada pesan detail dari server, cek Railway logs)"
         raise HTTPException(status_code=500, detail=detail) from exc
     finally:
-        if tmp_path and os.path.exists(tmp_path):
-            os.unlink(tmp_path)
+        for p in (tmp_path, wav_path):
+            if p and os.path.exists(p):
+                os.unlink(p)
